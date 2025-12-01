@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ app_name }} • Batch Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", "Space Mono", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #0f1827, #05070b 60%);
+      color: #f4f4f5;
+    }
+    .canvas {
+      min-height: 100vh;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .nav {
+      border: 1px solid #1d2432;
+      background: #070b12;
+      border-radius: 10px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    .glyph {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #303644;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+    }
+    .brand-title {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #e0e7ff;
+    }
+    .brand-sub {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #8a93a8;
+    }
+    .panel {
+      border: 1px solid #1c2333;
+      border-radius: 10px;
+      background: #070a11;
+      padding: 1.5rem clamp(1rem, 3vw, 2rem);
+    }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #f3f4f6;
+    }
+    p.subtle {
+      margin: 0.2rem 0 0;
+      color: #8b94a9;
+      font-size: 0.85rem;
+    }
+    .user-panel {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: 1px solid #30374a;
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      background: rgba(22,28,41,0.9);
+    }
+    .user-panel span { font-weight: 600; }
+    .user-panel button {
+      border: 1px solid #f87171;
+      background: transparent;
+      color: #f87171;
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      cursor: pointer;
+    }
+    .action-panel {
+      border-bottom: 1px solid #1c2333;
+      border-top: 1px solid #1c2333;
+      padding: 1rem clamp(1rem, 3vw, 2rem);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      background: #05070c;
+    }
+    .action-info { max-width: 480px; }
+    .selection-label {
+      margin: 0;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #cbd5f5;
+    }
+    .action-status {
+      margin: 0.2rem 0 0;
+      min-height: 1.1rem;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .action-button {
+      border-radius: 999px;
+      border: 1px solid #2c3344;
+      background: linear-gradient(135deg, #0f172a, #111c32);
+      color: #f1f5f9;
+      padding: 0.55rem 1.4rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .action-button.secondary { border-color: #f59e0b; color: #fcd34d; }
+    .action-button.danger { border-color: #dc2626; color: #fecaca; }
+    .action-button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #login-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      background: linear-gradient(135deg, rgba(6,11,24,0.95), rgba(9,13,25,0.95));
+    }
+    .batch-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .batch-actions a,
+    .detail-link {
+      border-radius: 4px;
+      border: 1px solid #2563eb;
+      color: #bfdbfe;
+      padding: 0.35rem 0.8rem;
+      text-decoration: none;
+      font-size: 0.75rem;
+    }
+    .detail-link {
+      display: inline-block;
+    }
+    .detail-col {
+      text-align: center;
+      white-space: nowrap;
+    }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.65rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid #232a3b;
+      background: #05060b;
+      color: inherit;
+    }
+    input:focus { outline: none; border-color: #3b82f6; }
+    button.primary {
+      padding: 0.7rem 1.4rem;
+      border-radius: 6px;
+      border: 1px solid #2563eb;
+      background: #1d4ed8;
+      color: #f8fafc;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .table-shell {
+      border: 1px solid #1c2434;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    thead { background: #0a0f19; }
+    th, td {
+      padding: 0.9rem 0.6rem;
+      border-bottom: 1px solid #161c29;
+    }
+    th {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8c94ab;
+      text-align: left;
+    }
+    td { color: #e5e7eb; }
+    .batch-row.row-selected { background: #111628; }
+    .hidden { display: none !important; }
+    .expand-cell { width: 50px; }
+    .expand-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid #2a3142;
+      background: transparent;
+      color: #f8fafc;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .batch-row.expanded .expand-btn { border-color: #3b82f6; }
+    .batch-row.expanded .chevron { transform: rotate(90deg); }
+    .chevron { transition: transform 0.2s ease; }
+    .batch-name { font-weight: 600; font-size: 1rem; }
+    .batch-meta { font-size: 0.78rem; color: #8b94a9; }
+    .progress-bar {
+      display: flex;
+      height: 16px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1f2535;
+      background: #05070c;
+      width: 100%;
+    }
+    .batch-progress-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: flex-start;
+    }
+    .batch-progress-cell .progress-bar {
+      width: 100%;
+    }
+    .segment { height: 100%; }
+    .segment-waiting { background: #4b5563; }
+    .segment-running { background: #fbbf24; }
+    .segment-success { background: #22c55e; }
+    .segment-failure { background: #dc2626; }
+    .segment-skipped { background: #0ea5e9; }
+    .batch-details-row td {
+      background: #05070d;
+      border-bottom: none;
+      padding: 0;
+    }
+    .details {
+      padding: 1rem 1.25rem 1.5rem;
+      border-top: 1px solid #161b27;
+    }
+    .placeholder { color: #8b94a9; margin: 0; }
+    .job-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .job-table th, .job-table td {
+      border-bottom: 1px solid #141926;
+      padding: 0.5rem 0.35rem;
+    }
+    .job-table tr.job-row-selected { background: #162032; }
+    .status-pill {
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+    }
+    .status-pill.pending { background: #4b5563; }
+    .status-pill.running { background: #f59e0b; }
+    .status-pill.success { background: #16a34a; }
+    .status-pill.failed { background: #dc2626; }
+    .status-pill.canceled { background: #0ea5e9; }
+    .log-button {
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid #384152;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .log-button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .empty-state {
+      margin-top: 1rem;
+      color: #8b94a9;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    #login-status { min-height: 1.1rem; color: #f87171; font-size: 0.9rem; }
+    .log-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(1,3,8,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      z-index: 1000;
+    }
+    .log-modal.hidden { display: none; }
+    .log-modal-card {
+      width: min(900px, 95vw);
+      max-height: 92vh;
+      background: #020309;
+      border: 1px solid #232a3b;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .log-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem 0;
+    }
+    .log-modal-close {
+      border: none;
+      background: transparent;
+      color: #8b94a9;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+    .log-modal-body { padding: 0 1.25rem 1.25rem; overflow-y: auto; }
+    .log-meta { color: #9da4b9; font-size: 0.85rem; }
+    .log-block { margin: 1rem 0; }
+    .log-pre {
+      background: #05060d;
+      border: 1px solid #161c2a;
+      border-radius: 6px;
+      padding: 0.75rem;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      max-height: 250px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .log-pre.empty { color: #5f6678; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <header class="nav">
+      <div class="brand">
+        <div class="glyph">//</div>
+        <div>
+          <p class="brand-title">{{ app_name }}</p>
+          <p class="brand-sub">batch command console</p>
+        </div>
+      </div>
+      <div id="user-panel" class="user-panel hidden">
+        <span id="signed-in-email"></span>
+        <button id="sign-out" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <section class="action-panel" id="action-panel">
+      <div class="action-info">
+        <p class="selection-label" id="selection-label">Select a batch or job to enable controls.</p>
+        <p class="action-status" id="action-status">Sign in to control jobs.</p>
+      </div>
+      <div class="action-buttons">
+        <button type="button" class="action-button" id="action-stop" disabled>Stop</button>
+        <button type="button" class="action-button secondary" id="action-force" disabled>Force Complete</button>
+        <button type="button" class="action-button danger" id="action-delete" disabled>Delete</button>
+      </div>
+    </section>
+
+    <section id="login-section" class="panel">
+      <div>
+        <h2>Authenticate</h2>
+        <p class="subtle">Sign in to stream your batches and single jobs (rendered as one-job batches).</p>
+      </div>
+      <form id="login-form">
+        <input id="email" name="email" type="email" placeholder="Email" required />
+        <input id="password" name="password" type="password" placeholder="Password" required />
+        <button class="primary" type="submit">Load dashboard</button>
+      </form>
+      <p id="login-status" aria-live="polite"></p>
+    </section>
+
+    <section id="batches-shell" class="panel hidden">
+      <div class="panel-head">
+        <div>
+          <h2>Batch queue</h2>
+          <p class="subtle">Everything is grouped: standalone jobs appear as single-entry batches.</p>
+        </div>
+        <button id="refresh-batches" class="primary" type="button">Refresh</button>
+      </div>
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>job_id / batch</th>
+              <th>waiting</th>
+              <th>running</th>
+              <th>success</th>
+              <th>failure</th>
+              <th>skipped</th>
+              <th>progress</th>
+              <th class="detail-col">details</th>
+            </tr>
+          </thead>
+          <tbody id="batch-body"></tbody>
+        </table>
+      </div>
+      <p id="batch-empty" class="empty-state hidden">No batches or single jobs yet.</p>
+    </section>
+  </div>
+
+  <div id="log-modal" class="log-modal hidden" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+    <div class="log-modal-card">
+      <div class="log-modal-header">
+        <h3 id="log-modal-title">Job logs</h3>
+        <button id="log-modal-close" class="log-modal-close" type="button" aria-label="Close logs">×</button>
+      </div>
+      <div class="log-modal-body">
+        <p id="log-modal-meta" class="log-meta"></p>
+        <div class="log-block">
+          <h4>Stdout</h4>
+          <pre id="log-modal-stdout" class="log-pre"></pre>
+        </div>
+        <div class="log-block">
+          <h4>Stderr</h4>
+          <pre id="log-modal-stderr" class="log-pre"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const loginStatus = document.getElementById('login-status');
+    const loginSection = document.getElementById('login-section');
+    const batchesSection = document.getElementById('batches-shell');
+    const batchBody = document.getElementById('batch-body');
+    const batchEmpty = document.getElementById('batch-empty');
+    const refreshButton = document.getElementById('refresh-batches');
+    const userPanel = document.getElementById('user-panel');
+    const signedInEmail = document.getElementById('signed-in-email');
+    const signOutButton = document.getElementById('sign-out');
+    const selectionLabel = document.getElementById('selection-label');
+    const actionStatus = document.getElementById('action-status');
+    const actionButtons = {
+      stop: document.getElementById('action-stop'),
+      force: document.getElementById('action-force'),
+      delete: document.getElementById('action-delete')
+    };
+    const logModal = document.getElementById('log-modal');
+    const logModalClose = document.getElementById('log-modal-close');
+    const logModalMeta = document.getElementById('log-modal-meta');
+    const logModalStdout = document.getElementById('log-modal-stdout');
+    const logModalStderr = document.getElementById('log-modal-stderr');
+    const logModalTitle = document.getElementById('log-modal-title');
+    let token = null;
+    let email = null;
+    let pollHandle = null;
+    let selectedEntity = null;
+    let selectedNode = null;
+    const virtualBatchJobs = new Map(); // stores single-job batch details
+    const actionRoutes = {
+      job: {
+        stop: { method: 'DELETE', url: (id) => `/api/v1/jobs/${id}` },
+        force: {
+          method: 'POST',
+          url: (id) => `/api/v1/jobs/${id}/force-complete`,
+          body: () => JSON.stringify({ status: 'success' })
+        },
+        delete: { method: 'DELETE', url: (id) => `/api/v1/jobs/${id}/purge` }
+      },
+      batch: {
+        stop: { method: 'POST', url: (id) => `/api/v1/job-batches/${id}/cancel` },
+        force: {
+          method: 'POST',
+          url: (id) => `/api/v1/job-batches/${id}/force-complete`,
+          body: () => JSON.stringify({ status: 'success' })
+        },
+        delete: { method: 'DELETE', url: (id) => `/api/v1/job-batches/${id}` }
+      }
+    };
+    const actionSuccessCopy = {
+      job: {
+        stop: 'Job cancel signal sent.',
+        force: 'Job marked as complete.',
+        delete: 'Job deleted.'
+      },
+      batch: {
+        stop: 'Batch cancel signal sent.',
+        force: 'Batch marked as complete.',
+        delete: 'Batch deleted.'
+      }
+    };
+
+    const statusClass = {
+      pending: 'pending',
+      running: 'running',
+      success: 'success',
+      failed: 'failed',
+      canceled: 'canceled'
+    };
+
+    const saved = window.localStorage.getItem('jobrunnerAuth');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        token = parsed.token;
+        email = parsed.email;
+        setAuthenticatedState();
+        refreshDashboard().catch(logout);
+      } catch (err) {
+        logout();
+      }
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginStatus.textContent = 'Signing in…';
+      loginStatus.style.color = '#94a3b8';
+      const data = new URLSearchParams();
+      data.append('username', document.getElementById('email').value);
+      data.append('password', document.getElementById('password').value);
+      try {
+        const resp = await fetch('/api/v1/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: data
+        });
+        if (!resp.ok) throw new Error('Invalid credentials');
+        const payload = await resp.json();
+        token = payload.access_token;
+        email = document.getElementById('email').value;
+        window.localStorage.setItem('jobrunnerAuth', JSON.stringify({ token, email }));
+        loginStatus.textContent = '';
+        setAuthenticatedState();
+        await refreshDashboard();
+        startPolling();
+      } catch (error) {
+        loginStatus.textContent = error.message || 'Unable to sign in.';
+        loginStatus.style.color = '#f87171';
+      }
+    });
+
+    refreshButton.addEventListener('click', async () => {
+      if (!token) return;
+      refreshButton.disabled = true;
+      await refreshDashboard();
+      refreshButton.disabled = false;
+    });
+
+    signOutButton.addEventListener('click', logout);
+
+    Object.entries(actionButtons).forEach(([key, button]) => {
+      button.addEventListener('click', () => handleAction(key));
+    });
+
+    batchBody.addEventListener('click', async (event) => {
+      if (event.target.closest('[data-batch-link]')) {
+        return;
+      }
+      const toggle = event.target.closest('[data-batch-toggle]');
+      if (toggle) {
+        await handleBatchToggle(toggle);
+        return;
+      }
+      const logTrigger = event.target.closest('[data-log-job]');
+      if (logTrigger) {
+        const row = logTrigger.closest('tr');
+        const jobName = row ? row.querySelector('[data-job-name]')?.textContent?.trim() || 'Job logs' : 'Job logs';
+        openLogModal(jobName);
+        await fetchJobLogs(logTrigger.dataset.logJob);
+        return;
+      }
+      if (event.target.closest('[data-job-link]')) {
+        return;
+      }
+      const jobRow = event.target.closest('[data-job-row]');
+      if (jobRow && !event.target.closest('[data-log-job]')) {
+        handleJobSelection(jobRow);
+        return;
+      }
+      const summaryRow = event.target.closest('.batch-row');
+      if (summaryRow && !event.target.closest('[data-batch-toggle]')) {
+        handleBatchSelection(summaryRow);
+      }
+    });
+
+    logModalClose.addEventListener('click', closeLogModal);
+    logModal.addEventListener('click', (event) => {
+      if (event.target === logModal) {
+        closeLogModal();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !logModal.classList.contains('hidden')) {
+        closeLogModal();
+      }
+    });
+
+    function handleBatchSelection(row) {
+      const batchId = row.dataset.batchId;
+      if (!batchId) return;
+      const label = row.dataset.batchName || batchId;
+      const isVirtual = row.dataset.batchType === 'virtual';
+      const selection = {
+        kind: 'batch',
+        id: batchId,
+        label,
+        isVirtual,
+        jobId: isVirtual ? row.dataset.jobId : undefined,
+      };
+      if (selection.isVirtual && !selection.jobId) {
+        const jobs = virtualBatchJobs.get(batchId) || [];
+        selection.jobId = jobs[0]?.id;
+      }
+      setSelection(selection, row);
+    }
+
+    function handleJobSelection(row) {
+      const jobId = row.dataset.jobId;
+      if (!jobId) return;
+      const label = row.dataset.jobName || jobId;
+      setSelection({ kind: 'job', id: jobId, label }, row);
+    }
+
+    function setSelection(entity, node) {
+      if (selectedNode && selectedEntity) {
+        selectedNode.classList.remove(
+          selectedEntity.kind === 'job' ? 'job-row-selected' : 'row-selected'
+        );
+      } else if (selectedNode) {
+        selectedNode.classList.remove('row-selected', 'job-row-selected');
+      }
+      selectedEntity = entity;
+      selectedNode = node || null;
+      if (entity && node) {
+        node.classList.add(entity.kind === 'job' ? 'job-row-selected' : 'row-selected');
+      }
+      updateSelectionLabel();
+      updateActionButtons();
+    }
+
+    function clearSelection() {
+      selectedEntity = null;
+      if (selectedNode) {
+        selectedNode.classList.remove('row-selected', 'job-row-selected');
+      }
+      selectedNode = null;
+      updateSelectionLabel();
+      updateActionButtons();
+    }
+
+    function updateSelectionLabel() {
+      if (!selectionLabel) return;
+      if (!selectedEntity) {
+        selectionLabel.textContent = 'Select a batch or job to enable controls.';
+        if (!token) {
+          actionStatus.textContent = 'Sign in to control jobs.';
+        }
+        return;
+      }
+      const label = selectedEntity.label || selectedEntity.id;
+      if (selectedEntity.kind === 'job') {
+        selectionLabel.textContent = `Job selected • ${label}`;
+      } else if (selectedEntity.isVirtual) {
+        selectionLabel.textContent = `Single job batch selected • ${label}`;
+      } else {
+        selectionLabel.textContent = `Batch selected • ${label}`;
+      }
+    }
+
+    function updateActionButtons() {
+      const enabled = Boolean(selectedEntity) && Boolean(token);
+      Object.values(actionButtons).forEach((button) => {
+        button.disabled = !enabled;
+      });
+    }
+
+    async function handleAction(action) {
+      if (!selectedEntity || !token) return;
+      actionStatus.style.color = '#94a3b8';
+      actionStatus.textContent = 'Working…';
+      const isBatch = selectedEntity.kind === 'batch' && !selectedEntity.isVirtual;
+      const targetType = isBatch ? 'batch' : 'job';
+      const targetId = targetType === 'batch'
+        ? selectedEntity.id
+        : selectedEntity.jobId || selectedEntity.id;
+      const config = actionRoutes[targetType]?.[action];
+      if (!config) {
+        actionStatus.textContent = 'Unsupported action.';
+        return;
+      }
+      const options = {
+        method: config.method,
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      if (config.body) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = config.body();
+      }
+      try {
+        const response = await performRequest(config.url(targetId), options);
+        actionStatus.style.color = '#22c55e';
+        actionStatus.textContent = response?.detail || actionSuccessCopy[targetType][action];
+        await refreshDashboard();
+        clearSelection();
+      } catch (error) {
+        if (error.message === 'unauthorized') {
+          logout();
+          return;
+        }
+        actionStatus.style.color = '#f87171';
+        actionStatus.textContent = error.message || 'Action failed';
+      } finally {
+        updateActionButtons();
+      }
+    }
+
+    async function performRequest(url, options) {
+      const resp = await fetch(url, options);
+      if (resp.status === 401) {
+        throw new Error('unauthorized');
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.detail || 'Request failed');
+      }
+      return data;
+    }
+
+    async function refreshDashboard() {
+      if (!token) return;
+      try {
+        await buildBatchTable();
+        batchesSection.classList.remove('hidden');
+      } catch (error) {
+        if (error.message === 'unauthorized') {
+          logout();
+        } else {
+          console.error(error);
+        }
+      }
+    }
+
+    async function buildBatchTable() {
+      clearSelection();
+      virtualBatchJobs.clear();
+      batchBody.innerHTML = '';
+      batchEmpty.classList.add('hidden');
+      const [batchResp, jobResp] = await Promise.all([fetchBatchItems(), fetchJobItems()]);
+      const singles = jobResp.items.filter((job) => !job.batch_id).map(jobToVirtualBatch);
+      const realBatches = batchResp.items.map((item) => ({ ...item, isVirtual: false }));
+      const combined = [...realBatches, ...singles];
+      combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      if (!combined.length) {
+        batchEmpty.classList.remove('hidden');
+        batchesSection.classList.remove('hidden');
+        return;
+      }
+      for (const batch of combined) {
+        const rows = buildBatchRows(batch);
+        batchBody.append(...rows);
+      }
+    }
+
+    async function fetchBatchItems() {
+      const resp = await fetch('/api/v1/job-batches', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401) throw new Error('unauthorized');
+      if (!resp.ok) throw new Error('Failed to load batches');
+      return resp.json();
+    }
+
+    async function fetchJobItems() {
+      const resp = await fetch('/api/v1/jobs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401) throw new Error('unauthorized');
+      if (!resp.ok) throw new Error('Failed to load jobs');
+      return resp.json();
+    }
+
+    function jobToVirtualBatch(job) {
+      const batchId = `job-${job.id}`;
+      const counts = countsFromJob(job.status);
+      virtualBatchJobs.set(batchId, [job]);
+      return {
+        id: batchId,
+        name: job.name || 'Single job',
+        total_jobs: 1,
+        pending_count: counts.waiting,
+        running_count: counts.running,
+        success_count: counts.success,
+        failed_count: counts.failure,
+        canceled_count: counts.skipped,
+        created_at: job.created_at,
+        isVirtual: true,
+      };
+    }
+
+    function countsFromJob(status) {
+      const counts = { waiting: 0, running: 0, success: 0, failure: 0, skipped: 0 };
+      switch (status) {
+        case 'pending':
+          counts.waiting = 1;
+          break;
+        case 'running':
+          counts.running = 1;
+          break;
+        case 'success':
+          counts.success = 1;
+          break;
+        case 'failed':
+          counts.failure = 1;
+          break;
+        case 'canceled':
+          counts.skipped = 1;
+          break;
+        default:
+          counts.waiting = 1;
+      }
+      return counts;
+    }
+
+    function buildBatchRows(batch) {
+      const summaryRow = document.createElement('tr');
+      summaryRow.className = 'batch-row';
+      summaryRow.dataset.batchId = batch.id;
+      summaryRow.dataset.batchType = batch.isVirtual ? 'virtual' : 'real';
+      const counts = getBatchCounts(batch);
+      const total = Math.max(batch.total_jobs || totalFromCounts(counts), 1);
+      let detailLinkContent = '—';
+      let virtualPrimaryJob = null;
+      if (batch.isVirtual) {
+        const virtualJobs = virtualBatchJobs.get(batch.id) || [];
+        virtualPrimaryJob = virtualJobs[0] || null;
+        if (virtualPrimaryJob) {
+          detailLinkContent = `<a href="/jobs/${virtualPrimaryJob.id}" class="detail-link" data-job-link>Details</a>`;
+        }
+      } else {
+        detailLinkContent = `<a href="/batches/${batch.id}" class="detail-link" data-batch-link>Details</a>`;
+      }
+      summaryRow.innerHTML = `
+        <td class="expand-cell">
+          <button type="button" class="expand-btn" data-batch-toggle aria-expanded="false">
+            <span class="chevron">›</span>
+          </button>
+        </td>
+        <td>
+          <div class="batch-name">${escapeHtml(batch.name || 'Batch')}</div>
+          <div class="batch-meta">${batch.isVirtual ? 'Single job batch' : '#' + batch.id.slice(0, 8)}</div>
+        </td>
+        <td>${counts.waiting}</td>
+        <td>${counts.running}</td>
+        <td>${counts.success}</td>
+        <td>${counts.failure}</td>
+        <td>${counts.skipped}</td>
+        <td>
+          <div class="batch-progress-cell">
+            ${renderProgressBar(counts, total)}
+          </div>
+        </td>
+        <td class="detail-col">${detailLinkContent}</td>
+      `;
+      summaryRow.dataset.batchName = batch.name || 'Batch';
+      if (batch.isVirtual) {
+        if (virtualPrimaryJob) {
+          summaryRow.dataset.jobId = virtualPrimaryJob.id;
+          summaryRow.dataset.jobName = virtualPrimaryJob.name || virtualPrimaryJob.id;
+        }
+      } else {
+        summaryRow.dataset.jobId = '';
+        summaryRow.dataset.jobName = '';
+      }
+
+      const detailRow = document.createElement('tr');
+      detailRow.className = 'batch-details-row hidden';
+      detailRow.dataset.batchDetailsFor = batch.id;
+      detailRow.innerHTML = `
+        <td colspan="9">
+          <div class="details" data-batch-details="${batch.id}">
+            <p class="placeholder">Select the batch to reveal jobs.</p>
+          </div>
+        </td>
+      `;
+
+      return [summaryRow, detailRow];
+    }
+
+    function getBatchCounts(batch) {
+      return {
+        waiting: batch.pending_count || 0,
+        running: batch.running_count || 0,
+        success: batch.success_count || 0,
+        failure: batch.failed_count || 0,
+        skipped: batch.canceled_count || 0,
+      };
+    }
+
+    function totalFromCounts(counts) {
+      return counts.waiting + counts.running + counts.success + counts.failure + counts.skipped;
+    }
+
+    function renderProgressBar(counts, total) {
+      const segments = [
+        ['waiting', 'segment-waiting'],
+        ['running', 'segment-running'],
+        ['success', 'segment-success'],
+        ['failure', 'segment-failure'],
+        ['skipped', 'segment-skipped']
+      ];
+      const html = segments
+        .map(([key, className]) => {
+          const width = total ? (counts[key] / total) * 100 : 0;
+          if (!width) return '';
+          return `<div class="segment ${className}" style="width:${width}%;"></div>`;
+        })
+        .join('');
+      return `<div class="progress-bar">${html || '<div class="segment segment-waiting" style="width:5%;opacity:0.3;"></div>'}</div>`;
+    }
+
+    async function handleBatchToggle(button) {
+      const row = button.closest('.batch-row');
+      if (!row) return;
+      const detailsRow = row.nextElementSibling;
+      if (!detailsRow || detailsRow.dataset.batchDetailsFor !== row.dataset.batchId) return;
+      const expanded = !detailsRow.classList.contains('hidden');
+      if (expanded) {
+        detailsRow.classList.add('hidden');
+        row.classList.remove('expanded');
+        button.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      detailsRow.classList.remove('hidden');
+      row.classList.add('expanded');
+      button.setAttribute('aria-expanded', 'true');
+      await populateBatchDetails(row.dataset.batchId, row.dataset.batchType, detailsRow.querySelector('[data-batch-details]'));
+    }
+
+    async function populateBatchDetails(batchId, type, container) {
+      container.innerHTML = '<p class="placeholder">Loading…</p>';
+      container.dataset.batchId = batchId;
+      if (type === 'virtual') {
+        const jobs = virtualBatchJobs.get(batchId) || [];
+        renderJobTable(jobs, container);
+        return;
+      }
+      const resp = await fetch(`/api/v1/job-batches/${batchId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401) throw new Error('unauthorized');
+      if (!resp.ok) {
+        container.innerHTML = '<p class="placeholder">Unable to load this batch right now.</p>';
+        return;
+      }
+      const data = await resp.json();
+      renderJobTable(data.jobs, container);
+    }
+
+    function renderJobTable(jobs, container) {
+      if (!jobs || !jobs.length) {
+        container.innerHTML = '<p class="placeholder">No jobs recorded for this batch.</p>';
+        return;
+      }
+      const rows = jobs
+        .map((job) => {
+          const pillClass = statusClass[job.status] || 'pending';
+          const logControl = renderLogButton(job);
+          const detailLink = `<a href="/jobs/${job.id}" class="detail-link" data-job-link>Details</a>`;
+          return `
+            <tr data-job-row data-job-id="${job.id}" data-job-name="${escapeHtml(job.name)}">
+              <td data-job-name>${escapeHtml(job.name)}</td>
+              <td><span class="status-pill ${pillClass}">${job.status}</span></td>
+              <td>${formatTime(job.started_at)}</td>
+              <td>${formatElapsed(job.started_at, job.completed_at)}</td>
+              <td>${job.working_dir ? escapeHtml(job.working_dir) : '—'}</td>
+              <td>${logControl}</td>
+              <td>${detailLink}</td>
+            </tr>
+          `;
+        })
+        .join('');
+      container.innerHTML = `
+        <table class="job-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Start</th>
+              <th>Elapsed</th>
+              <th>Working dir</th>
+              <th>Logs</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderLogButton(job) {
+      if (!canViewLogs(job)) {
+        return '<button type="button" class="log-button" disabled>Logs pending</button>';
+      }
+      return `<button type="button" class="log-button" data-log-job="${job.id}">View logs</button>`;
+    }
+
+    function canViewLogs(job) {
+      return ['success', 'failed', 'canceled'].includes(job.status);
+    }
+
+    function formatTime(value) {
+      if (!value) return '—';
+      return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatElapsed(start, end) {
+      if (!start || !end) return '—';
+      const diff = Math.max(new Date(end) - new Date(start), 0);
+      const minutes = Math.floor(diff / 60000).toString().padStart(2, '0');
+      const seconds = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    function setAuthenticatedState() {
+      if (!token || !email) return;
+      loginSection.classList.add('hidden');
+      userPanel.classList.remove('hidden');
+      signedInEmail.textContent = email;
+      updateActionButtons();
+      actionStatus.textContent = '';
+    }
+
+    function logout() {
+      token = null;
+      email = null;
+      window.localStorage.removeItem('jobrunnerAuth');
+      loginSection.classList.remove('hidden');
+      userPanel.classList.add('hidden');
+      batchesSection.classList.add('hidden');
+      batchBody.innerHTML = '';
+      batchEmpty.classList.add('hidden');
+      loginStatus.textContent = '';
+      clearSelection();
+      actionStatus.textContent = 'Sign in to control jobs.';
+      stopPolling();
+    }
+
+    function startPolling() {
+      stopPolling();
+      pollHandle = setInterval(refreshDashboard, 10000);
+    }
+
+    function stopPolling() {
+      if (pollHandle) {
+        clearInterval(pollHandle);
+        pollHandle = null;
+      }
+    }
+
+    function openLogModal(jobName) {
+      logModalTitle.textContent = `Logs • ${jobName}`;
+      logModalMeta.textContent = 'Loading logs…';
+      setLogBlock(logModalStdout, '', true);
+      setLogBlock(logModalStderr, '', true);
+      logModal.classList.remove('hidden');
+    }
+
+    function closeLogModal() {
+      logModal.classList.add('hidden');
+    }
+
+    async function fetchJobLogs(jobId) {
+      if (!token) {
+        logModalMeta.textContent = 'Please sign in to view logs.';
+        return;
+      }
+      try {
+        const resp = await fetch(`/api/v1/jobs/${jobId}/logs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (resp.status === 401) throw new Error('unauthorized');
+        if (resp.status === 409) {
+          logModalMeta.textContent = 'Logs are not available yet. Try again soon.';
+          setLogBlock(logModalStdout, '', true);
+          setLogBlock(logModalStderr, '', true);
+          return;
+        }
+        if (!resp.ok) throw new Error('Failed to load logs');
+        const data = await resp.json();
+        const exitCode = data.return_code ?? '—';
+        const workDir = data.working_dir || '—';
+        logModalMeta.textContent = `Exit code: ${exitCode} • Working dir: ${workDir}`;
+        setLogBlock(logModalStdout, data.stdout);
+        setLogBlock(logModalStderr, data.stderr);
+      } catch (error) {
+        if (error.message === 'unauthorized') {
+          logout();
+          return;
+        }
+        logModalMeta.textContent = error.message || 'Unable to load logs.';
+        setLogBlock(logModalStdout, '', true);
+        setLogBlock(logModalStderr, '', true);
+      }
+    }
+
+    function setLogBlock(target, content, empty = false) {
+      const value = content && !empty ? content : '';
+      target.textContent = value || '(empty)';
+      if (!value) {
+        target.classList.add('empty');
+      } else {
+        target.classList.remove('empty');
+      }
+    }
+
+    function escapeHtml(value) {
+      if (!value) return '';
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    updateSelectionLabel();
+    updateActionButtons();
+  </script>
+</body>
+</html>

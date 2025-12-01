@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ app_name }} • Job Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #03050a;
+      color: #f1f5f9;
+    }
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    header {
+      padding: 1.5rem clamp(1.25rem, 3vw, 4rem);
+      border-bottom: 1px solid #12182a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    main { flex: 1; padding: 2rem clamp(1.25rem, 3vw, 4rem) 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    a { color: #60a5fa; text-decoration: none; }
+    .card { border: 1px solid #141b25; border-radius: 10px; background: #080b13; padding: 1.5rem; }
+    h2 { margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    .metric { border: 1px solid #1d2434; border-radius: 8px; padding: 0.75rem; background: #0c1323; }
+    .metric p { margin: 0; }
+    .metric .label { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa3bd; }
+    .metric .value { font-size: 1.25rem; margin-top: 0.35rem; }
+    .status-pill { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; display: inline-flex; }
+    .pending { background: #4b5563; }
+    .running { background: #f59e0b; }
+    .success { background: #16a34a; }
+    .failed { background: #dc2626; }
+    .canceled { background: #0ea5e9; }
+    code { background: #0f172a; padding: 0.35rem 0.4rem; border-radius: 4px; display: inline-block; }
+    pre {
+      background: #02040a;
+      border: 1px solid #141a2a;
+      border-radius: 8px;
+      padding: 1rem;
+      color: #e2e8f0;
+      overflow: auto;
+      max-height: 320px;
+    }
+    form { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    input { padding: 0.6rem 0.85rem; border-radius: 6px; border: 1px solid #232a3b; background: #05070b; color: inherit; min-width: 220px; }
+    button { border-radius: 6px; border: 1px solid #2563eb; background: #1d4ed8; color: #f8fafc; padding: 0.65rem 1.2rem; font-weight: 600; cursor: pointer; }
+    #login-status, #log-status { min-height: 1rem; color: #f87171; font-size: 0.9rem; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1 style="margin:0;font-size:1rem;letter-spacing:0.2em;text-transform:uppercase;">{{ app_name }}</h1>
+        <p style="margin:0.2rem 0 0;color:#94a3b8;font-size:0.85rem;"><a href="/">Dashboard</a> › Job details</p>
+      </div>
+      <a href="/" style="font-size:0.9rem;">← Back to overview</a>
+    </header>
+    <main>
+      <section id="login-card" class="card">
+        <h2>Authenticate</h2>
+        <p style="color:#9aa3bd;margin-top:0;">Sign in to load this job.</p>
+        <form id="login-form">
+          <input id="email" type="email" placeholder="Email" required />
+          <input id="password" type="password" placeholder="Password" required />
+          <button type="submit">Unlock</button>
+        </form>
+        <p id="login-status" aria-live="polite"></p>
+      </section>
+
+      <section id="job-card" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <p style="margin:0;color:#94a3b8;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;">Job</p>
+            <h2 id="job-name">—</h2>
+            <p style="margin:0;color:#9da3b6;font-size:0.9rem;">ID: <span id="job-id">{{ job_id }}</span></p>
+            <p style="margin:0.3rem 0 0;color:#9da3b6;font-size:0.9rem;">Batch: <span id="job-batch">—</span></p>
+          </div>
+          <div>
+            <p style="margin:0;color:#94a3b8;font-size:0.8rem;">Status</p>
+            <span id="job-status" class="status-pill pending">pending</span>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:1rem;">
+          <div class="metric"><p class="label">Created</p><p class="value" id="job-created">—</p></div>
+          <div class="metric"><p class="label">Started</p><p class="value" id="job-started">—</p></div>
+          <div class="metric"><p class="label">Completed</p><p class="value" id="job-completed">—</p></div>
+          <div class="metric"><p class="label">Working dir</p><p class="value" id="job-workdir" style="font-size:0.9rem;word-break:break-word;">—</p></div>
+        </div>
+        <div style="margin-top:1.5rem;">
+          <p style="margin:0 0 0.4rem;color:#94a3b8;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;">Command</p>
+          <code id="job-command">—</code>
+        </div>
+        <div style="margin-top:1rem;">
+          <p style="margin:0 0 0.4rem;color:#94a3b8;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;">Payload</p>
+          <pre id="job-payload" style="max-height:200px;"></pre>
+        </div>
+      </section>
+
+      <section id="logs-card" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <h2 style="margin:0;">Logs</h2>
+          <button type="button" id="refresh-logs">Refresh logs</button>
+        </div>
+        <p id="log-status"></p>
+        <div class="grid" style="grid-template-columns:1fr;">
+          <div>
+            <p style="margin:0 0 0.4rem;color:#94a3b8;">Stdout</p>
+            <pre id="log-stdout">(empty)</pre>
+          </div>
+          <div>
+            <p style="margin:0 0 0.4rem;color:#94a3b8;">Stderr</p>
+            <pre id="log-stderr">(empty)</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const jobId = "{{ job_id }}";
+    const loginForm = document.getElementById('login-form');
+    const loginStatus = document.getElementById('login-status');
+    const loginCard = document.getElementById('login-card');
+    const jobCard = document.getElementById('job-card');
+    const logsCard = document.getElementById('logs-card');
+    const jobName = document.getElementById('job-name');
+    const jobIdField = document.getElementById('job-id');
+    const jobBatch = document.getElementById('job-batch');
+    const jobStatus = document.getElementById('job-status');
+    const jobCreated = document.getElementById('job-created');
+    const jobStarted = document.getElementById('job-started');
+    const jobCompleted = document.getElementById('job-completed');
+    const jobWorkdir = document.getElementById('job-workdir');
+    const jobCommand = document.getElementById('job-command');
+    const jobPayload = document.getElementById('job-payload');
+    const logStatus = document.getElementById('log-status');
+    const logStdout = document.getElementById('log-stdout');
+    const logStderr = document.getElementById('log-stderr');
+    const refreshLogsButton = document.getElementById('refresh-logs');
+
+    let token = null;
+
+    const saved = window.localStorage.getItem('jobrunnerAuth');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        token = parsed.token;
+        authenticateView();
+        loadJob();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginStatus.textContent = 'Signing in…';
+      loginStatus.style.color = '#94a3b8';
+      const data = new URLSearchParams();
+      data.append('username', document.getElementById('email').value);
+      data.append('password', document.getElementById('password').value);
+      try {
+        const resp = await fetch('/api/v1/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: data
+        });
+        if (!resp.ok) throw new Error('Invalid credentials');
+        const payload = await resp.json();
+        token = payload.access_token;
+        window.localStorage.setItem('jobrunnerAuth', JSON.stringify({ token, email: document.getElementById('email').value }));
+        loginStatus.textContent = '';
+        authenticateView();
+        await loadJob();
+      } catch (error) {
+        loginStatus.textContent = error.message || 'Unable to sign in.';
+        loginStatus.style.color = '#f87171';
+      }
+    });
+
+    refreshLogsButton.addEventListener('click', loadLogs);
+
+    async function loadJob() {
+      if (!token) return;
+      const resp = await fetch(`/api/v1/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401) {
+        loginStatus.textContent = 'Session expired. Please sign in again.';
+        loginStatus.style.color = '#f87171';
+        logout();
+        return;
+      }
+      if (!resp.ok) {
+        loginStatus.textContent = 'Unable to load job.';
+        loginStatus.style.color = '#f87171';
+        return;
+      }
+      const data = await resp.json();
+      renderJob(data);
+      await loadLogs();
+    }
+
+    async function loadLogs() {
+      if (!token) return;
+      logStatus.textContent = 'Loading logs…';
+      logStatus.style.color = '#94a3b8';
+      try {
+        const resp = await fetch(`/api/v1/jobs/${jobId}/logs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (resp.status === 401) throw new Error('unauthorized');
+        if (resp.status === 409) {
+          logStatus.textContent = 'Logs are not available yet.';
+          logStdout.textContent = '(empty)';
+          logStderr.textContent = '(empty)';
+          return;
+        }
+        if (!resp.ok) throw new Error('Unable to load logs');
+        const data = await resp.json();
+        logStatus.textContent = `Exit code: ${data.return_code ?? '—'} • Working dir: ${data.working_dir || '—'}`;
+        logStatus.style.color = '#94a3b8';
+        logStdout.textContent = data.stdout || '(empty)';
+        logStderr.textContent = data.stderr || '(empty)';
+        logsCard.classList.remove('hidden');
+      } catch (error) {
+        if (error.message === 'unauthorized') {
+          logout();
+          return;
+        }
+        logStatus.style.color = '#f87171';
+        logStatus.textContent = error.message || 'Unable to load logs.';
+      }
+    }
+
+    function renderJob(job) {
+      jobCard.classList.remove('hidden');
+      jobName.textContent = job.name || 'Job';
+      jobIdField.textContent = job.id;
+      jobBatch.innerHTML = job.batch_id ? `<a href="/batches/${job.batch_id}">${job.batch_id}</a>` : '—';
+      jobStatus.textContent = job.status;
+      jobStatus.className = `status-pill ${job.status}`;
+      jobCreated.textContent = formatDate(job.created_at);
+      jobStarted.textContent = formatDate(job.started_at);
+      jobCompleted.textContent = formatDate(job.completed_at);
+      jobWorkdir.textContent = job.working_dir || '—';
+      jobCommand.textContent = job.command?.join(' ') || '—';
+      jobPayload.textContent = JSON.stringify(job.payload || {}, null, 2);
+    }
+
+    function authenticateView() {
+      loginCard.classList.add('hidden');
+    }
+
+    function logout() {
+      token = null;
+      loginCard.classList.remove('hidden');
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      return new Date(value).toLocaleString();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ app_name }} • Batch Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #05070b;
+      color: #f8fafc;
+    }
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1.5rem clamp(1.25rem, 3vw, 4rem);
+      border-bottom: 1px solid #141b2c;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .crumbs {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-top: 0.2rem;
+    }
+    a { color: #60a5fa; text-decoration: none; }
+    main {
+      padding: 2rem clamp(1.25rem, 3vw, 4rem) 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      flex: 1;
+    }
+    .card {
+      border: 1px solid #161d2f;
+      border-radius: 10px;
+      padding: 1.5rem;
+      background: #070a12;
+    }
+    .card h2 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+    .metric {
+      border: 1px solid #1d2538;
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: #0a0f19;
+    }
+    .metric p {
+      margin: 0;
+    }
+    .metric .label {
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: #9ba3be;
+    }
+    .metric .value {
+      font-size: 1.3rem;
+      margin-top: 0.35rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.7rem 0.4rem;
+      border-bottom: 1px solid #131827;
+    }
+    th {
+      text-align: left;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8f98b3;
+    }
+    .status-pill {
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pending { background: #4b5563; }
+    .running { background: #f59e0b; }
+    .success { background: #16a34a; }
+    .failed { background: #dc2626; }
+    .canceled { background: #0ea5e9; }
+    .hidden { display: none !important; }
+    form {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    input {
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid #232a3b;
+      background: #05070b;
+      color: inherit;
+      min-width: 220px;
+    }
+    button {
+      border-radius: 6px;
+      border: 1px solid #2563eb;
+      background: #1d4ed8;
+      color: #f8fafc;
+      padding: 0.65rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    #login-status { color: #f87171; min-height: 1rem; font-size: 0.9rem; }
+    .progress-bar {
+      display: flex;
+      height: 16px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1d2534;
+      background: #05070c;
+      margin-bottom: 1rem;
+    }
+    .segment { height: 100%; }
+    .segment-waiting { background: #4b5563; }
+    .segment-running { background: #fbbf24; }
+    .segment-success { background: #22c55e; }
+    .segment-failed { background: #dc2626; }
+    .segment-canceled { background: #0ea5e9; }
+    .empty-state { color: #9da3b6; text-align: center; margin: 1rem 0 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div>
+          <h1>{{ app_name }}</h1>
+          <p class="crumbs"><a href="/">Dashboard</a> › Batch details</p>
+        </div>
+      </div>
+      <a href="/" style="font-size:0.9rem;">← Back to overview</a>
+    </header>
+
+    <main>
+      <section id="login-card" class="card">
+        <h2>Authenticate</h2>
+        <p style="color:#9da3b6;margin-top:0;">Sign in to load secure batch data.</p>
+        <form id="login-form">
+          <input id="email" type="email" placeholder="Email" required />
+          <input id="password" type="password" placeholder="Password" required />
+          <button type="submit">Unlock</button>
+        </form>
+        <p id="login-status" aria-live="polite"></p>
+      </section>
+
+      <section id="batch-summary" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <p style="margin:0;color:#94a3b8;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;">Batch</p>
+            <h2 id="batch-name">—</h2>
+            <p id="batch-desc" style="margin:0;color:#9da3b6;font-size:0.95rem;"></p>
+          </div>
+          <div style="text-align:right;min-width:160px;">
+            <p style="margin:0;color:#94a3b8;font-size:0.8rem;">State</p>
+            <p id="batch-status" style="margin:0;font-size:1.2rem;font-weight:600;">—</p>
+            <p style="margin:0;color:#94a3b8;font-size:0.8rem;">ID: <span id="batch-id">{{ batch_id }}</span></p>
+          </div>
+        </div>
+        <div class="progress-bar" id="progress-bar"></div>
+        <div class="grid">
+          <div class="metric"><p class="label">Created</p><p class="value" id="batch-created">—</p></div>
+          <div class="metric"><p class="label">Started</p><p class="value" id="batch-started">—</p></div>
+          <div class="metric"><p class="label">Completed</p><p class="value" id="batch-completed">—</p></div>
+          <div class="metric"><p class="label">Total jobs</p><p class="value" id="batch-total">—</p></div>
+        </div>
+        <div class="grid" style="margin-top:1rem;">
+          <div class="metric"><p class="label">Waiting</p><p class="value" id="metric-waiting">0</p></div>
+          <div class="metric"><p class="label">Running</p><p class="value" id="metric-running">0</p></div>
+          <div class="metric"><p class="label">Succeeded</p><p class="value" id="metric-success">0</p></div>
+          <div class="metric"><p class="label">Failed</p><p class="value" id="metric-failed">0</p></div>
+          <div class="metric"><p class="label">Canceled</p><p class="value" id="metric-canceled">0</p></div>
+        </div>
+      </section>
+
+      <section id="jobs-card" class="card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+          <h2 style="margin:0;">Jobs</h2>
+          <span id="job-count" style="color:#94a3b8;font-size:0.9rem;">—</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Started</th>
+                <th>Completed</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-body"></tbody>
+          </table>
+          <p id="jobs-empty" class="empty-state hidden">No jobs recorded.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const batchId = "{{ batch_id }}";
+    const loginCard = document.getElementById('login-card');
+    const loginForm = document.getElementById('login-form');
+    const loginStatus = document.getElementById('login-status');
+    const summaryCard = document.getElementById('batch-summary');
+    const jobsCard = document.getElementById('jobs-card');
+    const jobsBody = document.getElementById('jobs-body');
+    const jobsEmpty = document.getElementById('jobs-empty');
+    const jobCount = document.getElementById('job-count');
+    const batchName = document.getElementById('batch-name');
+    const batchDesc = document.getElementById('batch-desc');
+    const batchStatus = document.getElementById('batch-status');
+    const batchIdField = document.getElementById('batch-id');
+    const progressBar = document.getElementById('progress-bar');
+    const metrics = {
+      waiting: document.getElementById('metric-waiting'),
+      running: document.getElementById('metric-running'),
+      success: document.getElementById('metric-success'),
+      failed: document.getElementById('metric-failed'),
+      canceled: document.getElementById('metric-canceled'),
+    };
+    const timeline = {
+      created: document.getElementById('batch-created'),
+      started: document.getElementById('batch-started'),
+      completed: document.getElementById('batch-completed'),
+      total: document.getElementById('batch-total'),
+    };
+
+    let token = null;
+
+    const saved = window.localStorage.getItem('jobrunnerAuth');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        token = parsed.token;
+        batchIdField.textContent = batchId;
+        authenticateView();
+        loadBatch();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginStatus.textContent = 'Signing in…';
+      loginStatus.style.color = '#94a3b8';
+      const data = new URLSearchParams();
+      data.append('username', document.getElementById('email').value);
+      data.append('password', document.getElementById('password').value);
+      try {
+        const resp = await fetch('/api/v1/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: data
+        });
+        if (!resp.ok) throw new Error('Invalid credentials');
+        const payload = await resp.json();
+        token = payload.access_token;
+        window.localStorage.setItem('jobrunnerAuth', JSON.stringify({ token, email: document.getElementById('email').value }));
+        authenticateView();
+        loginStatus.textContent = '';
+        await loadBatch();
+      } catch (error) {
+        loginStatus.textContent = error.message || 'Unable to sign in.';
+        loginStatus.style.color = '#f87171';
+      }
+    });
+
+    async function loadBatch() {
+      if (!token) return;
+      const resp = await fetch(`/api/v1/job-batches/${batchId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401) {
+        loginStatus.textContent = 'Session expired. Please sign in again.';
+        loginStatus.style.color = '#f87171';
+        logout();
+        return;
+      }
+      if (!resp.ok) {
+        loginStatus.textContent = 'Unable to load batch.';
+        loginStatus.style.color = '#f87171';
+        return;
+      }
+      const data = await resp.json();
+      renderBatch(data);
+      renderJobs(data.jobs);
+    }
+
+    function renderBatch(batch) {
+      summaryCard.classList.remove('hidden');
+      batchName.textContent = batch.name || 'Batch';
+      batchDesc.textContent = batch.description || '';
+      batchStatus.textContent = formatStatus(batch);
+      batchIdField.textContent = batch.id;
+      timeline.created.textContent = formatDate(batch.created_at);
+      timeline.started.textContent = formatDate(batch.started_at);
+      timeline.completed.textContent = formatDate(batch.completed_at);
+      timeline.total.textContent = batch.total_jobs ?? '—';
+      metrics.waiting.textContent = batch.pending_count;
+      metrics.running.textContent = batch.running_count;
+      metrics.success.textContent = batch.success_count;
+      metrics.failed.textContent = batch.failed_count;
+      metrics.canceled.textContent = batch.canceled_count;
+      renderProgress(batch);
+    }
+
+    function renderProgress(batch) {
+      const total = Math.max(batch.total_jobs || 0, 1);
+      const segments = [
+        ['pending_count', 'segment-waiting'],
+        ['running_count', 'segment-running'],
+        ['success_count', 'segment-success'],
+        ['failed_count', 'segment-failed'],
+        ['canceled_count', 'segment-canceled']
+      ];
+      progressBar.innerHTML = segments
+        .map(([key, className]) => {
+          const width = ((batch[key] || 0) / total) * 100;
+          if (!width) return '';
+          return `<div class="segment ${className}" style="width:${width}%;"></div>`;
+        })
+        .join('') || '<div class="segment segment-waiting" style="width:5%;opacity:0.3;"></div>';
+    }
+
+    function renderJobs(jobs) {
+      jobsCard.classList.remove('hidden');
+      jobsBody.innerHTML = '';
+      jobsEmpty.classList.add('hidden');
+      jobCount.textContent = `${jobs.length} job${jobs.length === 1 ? '' : 's'}`;
+      if (!jobs.length) {
+        jobsEmpty.classList.remove('hidden');
+        return;
+      }
+      for (const job of jobs) {
+        const tr = document.createElement('tr');
+        const pill = `<span class="status-pill ${job.status}">${job.status}</span>`;
+        tr.innerHTML = `
+          <td>${escapeHtml(job.name || '')}</td>
+          <td>${pill}</td>
+          <td>${formatDate(job.created_at)}</td>
+          <td>${formatDate(job.started_at)}</td>
+          <td>${formatDate(job.completed_at)}</td>
+          <td><a href="/jobs/${job.id}">Open</a></td>
+        `;
+        jobsBody.append(tr);
+      }
+    }
+
+    function authenticateView() {
+      loginCard.classList.add('hidden');
+    }
+
+    function logout() {
+      token = null;
+      loginCard.classList.remove('hidden');
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      return new Date(value).toLocaleString();
+    }
+
+    function formatStatus(batch) {
+      if (batch.running_count > 0) return 'Running';
+      if (batch.pending_count === batch.total_jobs) return 'Waiting';
+      if (batch.success_count === batch.total_jobs) return 'Succeeded';
+      if (batch.failed_count || batch.canceled_count) return 'Completed with issues';
+      return 'Queued';
+    }
+
+    function escapeHtml(value) {
+      if (!value) return '';
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
