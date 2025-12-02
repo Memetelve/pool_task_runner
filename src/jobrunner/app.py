@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from .api.router import api_router
 from .config import settings
+from .database import init_db
 
 
 def create_app() -> FastAPI:
@@ -23,6 +24,11 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(
         directory=str(Path(__file__).resolve().parent / "templates")
     )
+
+    @app.on_event("startup")
+    async def apply_schema_upgrades() -> None:
+        """Ensure DB schema (including new columns) exists before serving traffic."""
+        await init_db()
 
     @app.get("/", response_class=HTMLResponse)
     async def dashboard(
@@ -48,6 +54,15 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(
             "job_detail.html",
             {"request": request, "app_name": settings.app_name, "job_id": job_id},
+        )
+
+    @app.get("/admin/limits", response_class=HTMLResponse)
+    async def admin_limits(
+        request: Request,
+    ) -> HTMLResponse:  # pragma: no cover - HTML response
+        return templates.TemplateResponse(
+            "admin_limits.html",
+            {"request": request, "app_name": settings.app_name},
         )
 
     return app

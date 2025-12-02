@@ -29,6 +29,13 @@ uv run jobrunner init-db
 - Run worker: `uv run jobrunner worker`
 - Bring up full stack: `docker compose up --build`
 
+### Documentation
+
+- Install docs tooling: `uv sync --extra docs`
+- Live preview: `uv run -- mkdocs serve`
+- Production build: `uv run -- mkdocs build` (outputs to `site/`)
+- Docs live under `docs/` and the configuration is in `mkdocs.yml`. Contributions follow the same PR workflow as the codebase.
+
 ### Submitting shell-command jobs
 
 Payloads now describe the command to execute plus optional working directory/env:
@@ -46,6 +53,14 @@ Authorization: Bearer <token>
 ```
 
 The Celery worker spawns the command locally, streams stdout/stderr, enforces `COMMAND_TIMEOUT_SECONDS`, and records the exit code in the job’s `result`. Configure safe directories via `DEFAULT_WORKING_DIR` and comma-separated `ALLOWED_WORKDIRS`.
+
+### Job Limits
+
+Admins can enforce concurrency caps to keep the cluster healthy.
+
+- Default limit is controlled by `DEFAULT_MAX_JOBS_PER_USER` (100 by default).
+- Visit `/admin/limits` to edit the global cap or set per-user overrides.
+- API submissions return HTTP 400 if the new workload would exceed the user’s available slots.
 
 ### API Highlights
 

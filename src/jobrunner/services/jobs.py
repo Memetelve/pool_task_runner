@@ -14,6 +14,7 @@ from ..celery_app import celery_app
 from ..config import settings
 from ..models import Job, JobBatch, JobStatus, User, UserRole
 from ..schemas import JobBatchCreate, JobCreate
+from .quotas import QuotaService, enforce_quota
 
 TERMINAL_STATUSES = {
     JobStatus.success,
@@ -28,8 +29,10 @@ class JobService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+        self.quota_service = QuotaService(session)
 
     async def enqueue(self, owner: User, payload: JobCreate) -> Job:
+        await enforce_quota(self.quota_service, owner, 1)
         batch: JobBatch | None = None
         if payload.batch_id:
             batch = await self._get_batch(payload.batch_id, owner)
@@ -59,6 +62,7 @@ class JobService:
     ) -> tuple[JobBatch, list[Job]]:
         if not payload.jobs:
             raise ValueError("Batch requires at least one job")
+        await enforce_quota(self.quota_service, owner, len(payload.jobs))
 
         batch = JobBatch(
             name=payload.name,

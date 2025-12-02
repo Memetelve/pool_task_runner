@@ -1,0 +1,73 @@
+site_name: JobRunner
+site_description: Documentation for the JobRunner batch orchestration service.
+site_url: "https://example.com/jobrunner"
+repo_name: Memetelve/pool_task_runner
+repo_url: https://github.com/Memetelve/pool_task_runner
+copyright: "© {year} Memetelve"
+
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Jobs & Batches: jobs-and-batches.md
+  - Dashboard: dashboard.md
+  - API Reference: api.md
+  - Operations: operations.md
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - content.action.edit
+    - content.code.annotate
+    - toc.integrate
+  font:
+    text: Inter
+    code: "Space Mono"
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Memetelve/pool_task_runner
+      name: GitHub
+extra_css: []
+extra_javascript: []
+
+docs_dir: docs
+site_dir: site

@@ -28,11 +28,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8)
+    max_concurrent_jobs: int | None = Field(default=None, ge=1)
+
+
+class UserUpdate(BaseModel):
+    role: UserRole | None = None
+    password: str | None = Field(default=None, min_length=8)
+    is_active: bool | None = None
+    max_concurrent_jobs: int | None = Field(default=None, ge=1)
 
 
 class UserRead(UserBase):
     id: UUID
     is_active: bool
+    max_concurrent_jobs: int | None = None
     created_at: datetime
 
     class Config:
@@ -158,3 +167,23 @@ class HealthResponse(BaseModel):
 
 class Message(BaseModel):
     detail: str
+
+
+class QuotaValue(BaseModel):
+    max_jobs: int
+
+
+class QuotaUserUpdate(BaseModel):
+    max_jobs: int | None = Field(default=None, ge=1)
+
+
+class UserQuota(BaseModel):
+    id: UUID
+    email: EmailStr
+    role: UserRole
+    max_jobs: int | None
+
+
+class QuotaSummary(BaseModel):
+    default_limit: int
+    overrides: list[UserQuota]

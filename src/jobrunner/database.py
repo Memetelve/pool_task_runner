@@ -22,19 +22,23 @@ async def init_db() -> None:
     """Create database tables if they do not exist."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.run_sync(_ensure_batch_columns)
+        await conn.run_sync(_ensure_schema_upgrades)
 
 
-def _ensure_batch_columns(sync_conn) -> None:
+def _ensure_schema_upgrades(sync_conn) -> None:
     inspector = inspect(sync_conn)
-    if "jobs" not in inspector.get_table_names():
-        return
-    columns = {column["name"] for column in inspector.get_columns("jobs")}
-    if "batch_id" in columns:
-        return
-
+    tables = set(inspector.get_table_names())
     dialect = sync_conn.dialect.name
-    if dialect == "sqlite":
-        sync_conn.execute(text("ALTER TABLE jobs ADD COLUMN batch_id TEXT"))
-    else:
-        sync_conn.execute(text("ALTER TABLE jobs ADD COLUMN batch_id UUID"))
+
+    if "jobs" in tables:
+        job_columns = {column["name"] for column in inspector.get_columns("jobs")}
+        if "batch_id" not in job_columns:
+            if dialect == "sqlite":
+                sync_conn.execute(text("ALTER TABLE jobs ADD COLUMN batch_id TEXT"))
+            else:
+                sync_conn.execute(text("ALTER TABLE jobs ADD COLUMN batch_id UUID"))
+
+    if "users" in tables:
+        user_columns = {column["name"] for column in inspector.get_columns("users")}
+        if "max_concurrent_jobs" not in user_columns:
+            sync_conn.execute(text("ALTER TABLE users ADD COLUMN max_concurrent_jobs INTEGER"))

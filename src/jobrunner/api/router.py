@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from .routes import auth, batches, health, jobs, users
+from .routes import admin, auth, batches, health, jobs, users
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -10,3 +10,4 @@ api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(batches.router, prefix="/job-batches", tags=["job-batches"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

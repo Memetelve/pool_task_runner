@@ -46,6 +46,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.operator)
+    max_concurrent_jobs: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -136,6 +137,13 @@ class Job(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON, nullable=False)
+
+
 __all__ = [
     "Base",
     "User",
@@ -143,4 +151,5 @@ __all__ = [
     "JobBatch",
     "UserRole",
     "JobStatus",
+    "SystemSetting",
 ]

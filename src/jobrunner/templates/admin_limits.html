@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ app_name }} • Admin Limits</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #030712;
+      color: #f8fafc;
+    }
+    .shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: clamp(1rem, 4vw, 3rem);
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    a.nav-link {
+      color: #93c5fd;
+      text-decoration: none;
+      border: 1px solid #1d4ed8;
+      border-radius: 6px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+    }
+    .card {
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.8);
+      padding: 1.5rem;
+    }
+    .card h2 {
+      margin-top: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 1rem;
+    }
+    .card p {
+      margin: 0.5rem 0;
+      color: #cbd5f5;
+    }
+    .flex {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    label {
+      font-size: 0.85rem;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input[type="number"] {
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #020617;
+      color: inherit;
+      width: 140px;
+    }
+    button {
+      border-radius: 6px;
+      border: 1px solid #2563eb;
+      background: #1d4ed8;
+      color: #f8fafc;
+      padding: 0.5rem 1.2rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border-bottom: 1px solid #1f2937;
+      padding: 0.5rem;
+      text-align: left;
+    }
+    th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+    }
+    .status {
+      min-height: 1.5rem;
+      color: #fbbf24;
+      font-size: 0.85rem;
+    }
+    .empty {
+      text-align: center;
+      padding: 1rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Admin • Job Limits</h1>
+      <a class="nav-link" href="/">⬅︎ Back to dashboard</a>
+    </header>
+
+    <section class="card">
+      <h2>Global Limit</h2>
+      <p>Default concurrent job cap applied to every account unless a custom override is set.</p>
+      <form id="global-form" class="flex">
+        <label for="global-limit">Max jobs</label>
+        <input id="global-limit" name="global-limit" type="number" min="1" required />
+        <button type="submit">Save limit</button>
+      </form>
+      <p id="global-status" class="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>User Overrides</h2>
+      <p>Set per-account concurrency caps or clear overrides to fall back to the global limit.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Override</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="user-table"></tbody>
+      </table>
+      <p id="user-empty" class="empty hidden">No overrides set.</p>
+      <p id="user-status" class="status"></p>
+    </section>
+  </div>
+
+  <script>
+    const tokenKey = 'jobrunnerAuth';
+    let token = null;
+
+    function setStatus(element, message, color = '#fbbf24') {
+      element.textContent = message;
+      element.style.color = color;
+    }
+
+    function getAuth() {
+      const saved = window.localStorage.getItem(tokenKey);
+      if (!saved) return null;
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.token;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function requireToken() {
+      token = getAuth();
+      if (!token) {
+        window.location.href = '/';
+      }
+    }
+
+    async function fetchLimits() {
+      const resp = await fetch('/api/v1/admin/limits', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.status === 401 || resp.status === 403) {
+        window.location.href = '/';
+        return null;
+      }
+      if (!resp.ok) throw new Error('Failed to load limits');
+      return resp.json();
+    }
+
+    function renderOverrides(overrides) {
+      const table = document.getElementById('user-table');
+      const empty = document.getElementById('user-empty');
+      table.innerHTML = '';
+      if (!overrides.length) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      overrides.forEach((user) => {
+        const row = document.createElement('tr');
+        const current = user.max_jobs ?? '—';
+        row.innerHTML = `
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+          <td>
+            <input type="number" class="override-input" data-user="${user.id}" value="${user.max_jobs ?? ''}" min="1" placeholder="Default" />
+          </td>
+          <td>
+            <button type="button" data-save="${user.id}">Save</button>
+            <button type="button" data-clear="${user.id}">Clear</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    async function updateGlobalLimit(limit) {
+      const resp = await fetch('/api/v1/admin/limits/global', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ max_jobs: limit })
+      });
+      if (!resp.ok) throw new Error('Unable to save');
+      return resp.json();
+    }
+
+    async function updateUserLimit(userId, limit) {
+      const resp = await fetch(`/api/v1/admin/limits/users/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ max_jobs: limit })
+      });
+      if (!resp.ok) {
+        const message = await resp.text();
+        throw new Error(message || 'Unable to save');
+      }
+      return resp.json();
+    }
+
+    document.getElementById('global-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const input = document.getElementById('global-limit');
+      const statusEl = document.getElementById('global-status');
+      setStatus(statusEl, 'Saving...', '#93c5fd');
+      try {
+        const value = Number(input.value);
+        const result = await updateGlobalLimit(value);
+        setStatus(statusEl, `Updated global limit to ${result.max_jobs}`, '#34d399');
+      } catch (error) {
+        setStatus(statusEl, error.message || 'Unable to save limit', '#f87171');
+      }
+    });
+
+    document.getElementById('user-table').addEventListener('click', async (event) => {
+      const saveTarget = event.target.closest('[data-save]');
+      const clearTarget = event.target.closest('[data-clear]');
+      const statusEl = document.getElementById('user-status');
+      if (saveTarget) {
+        const userId = saveTarget.dataset.save;
+        const input = document.querySelector(`input[data-user="${userId}"]`);
+        if (!input) return;
+        const value = input.value ? Number(input.value) : null;
+        setStatus(statusEl, 'Saving override...', '#93c5fd');
+        try {
+          const response = await updateUserLimit(userId, value);
+          input.value = response.max_jobs ?? '';
+          setStatus(statusEl, `Updated ${response.email} to ${response.max_jobs ?? 'default'} jobs`, '#34d399');
+        } catch (error) {
+          setStatus(statusEl, error.message || 'Unable to save override', '#f87171');
+        }
+        return;
+      }
+      if (clearTarget) {
+        const userId = clearTarget.dataset.clear;
+        const input = document.querySelector(`input[data-user="${userId}"]`);
+        if (!input) return;
+        setStatus(statusEl, 'Clearing override...', '#93c5fd');
+        try {
+          const response = await updateUserLimit(userId, null);
+          input.value = '';
+          setStatus(statusEl, `Cleared override for ${response.email}`, '#34d399');
+        } catch (error) {
+          setStatus(statusEl, error.message || 'Unable to clear override', '#f87171');
+        }
+      }
+    });
+
+    async function bootstrap() {
+      requireToken();
+      try {
+        const data = await fetchLimits();
+        if (!data) return;
+        document.getElementById('global-limit').value = data.default_limit;
+        renderOverrides(data.overrides);
+      } catch (error) {
+        setStatus(document.getElementById('global-status'), error.message || 'Unable to load limits', '#f87171');
+      }
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

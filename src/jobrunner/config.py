@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     default_working_dir: str = "."
     allowed_workdirs: list[str] = Field(default_factory=list)
     command_timeout_seconds: int = 3600
+    default_max_jobs_per_user: int = 100
 
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
